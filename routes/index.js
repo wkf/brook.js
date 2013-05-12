@@ -6,5 +6,5 @@ exports.set = function(app) {
  * GET home page.
  */
 function homePage(req, res) {
-  res.render('index', { title: 'Express' });
+  res.render('index', { title: 'Brook.js' });
 }
