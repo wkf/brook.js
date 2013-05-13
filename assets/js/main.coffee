@@ -16,52 +16,58 @@ class Track
 
   constructor: (@options) ->
     @context = @options.context
-    @stream = options.stream
-    @audio = []
+    @stream = @options.stream
+    @samples = []
 
   record: ->
     console.log 'recording...'
 
     source = @context.createMediaStreamSource(@stream)
-    capture = @context.createScriptProcessor(512, 2, 2)
+    @capture = @context.createScriptProcessor(512, 2, 2)
 
-    capture.onaudioprocess = (event) =>
+    @capture.onaudioprocess = (event) =>
       if !@recording then return
 
-      @audio.push [
+      @samples.push [
         cloneBuffer event.inputBuffer.getChannelData(0)
         cloneBuffer event.inputBuffer.getChannelData(1)
       ]
 
-    source.connect capture
-    capture.connect @context.destination
+    source.connect @capture
+    @capture.connect @context.destination
 
     @recording = true
 
   stop: ->
     console.log 'stopping...'
 
-    @recording and @recording = false
+    if @recording
+      @capture.disconnect()
+      @recording = false
+
+    if @playing
+      @source.disconnect()
+      @playing = false
 
   play: ->
     console.log 'playing...'
 
-    source = @context.createBufferSource()
-    output = @context.createBuffer(2, @audio.length * 512, @context.sampleRate)
+    @source = @context.createBufferSource()
+    output = @context.createBuffer(2, @samples.length * 512, @context.sampleRate)
     outputL = output.getChannelData(0)
     outputR = output.getChannelData(1)
     offsetL = 0
     offsetR = 0
 
-    for buffer in @audio
+    for buffer in @samples
       offsetL += copyBuffer(buffer[0], outputL, offsetL)
       offsetR += copyBuffer(buffer[1], outputR, offsetR)
 
-    source.buffer = output
-    source.connect @context.destination
-    source.start 0
+    @source.buffer = output
+    @source.connect @context.destination
+    @source.start 0
 
-# #
+    @playing = true
 
 requirejs.config
   paths:
@@ -69,10 +75,17 @@ requirejs.config
 
 require ['jquery'], ($) ->
   navigator.webkitGetUserMedia audio: true, (stream) ->
-    track = new Track
-      stream: stream
-      context: new window.webkitAudioContext()
 
-    $('.record').click -> track.record()
-    $('.stop').click -> track.stop()
-    $('.play').click -> track.play()
+    tracks = $('.track').map (i, $track) ->
+      track = new Track
+        stream: stream
+        context: new window.webkitAudioContext()
+
+      $('.record', $track).click -> track.record()
+      $('.stop', $track).click -> track.stop()
+      $('.play', $track).click -> track.play()
+
+      track
+
+    $('.playall').click ->
+      tracks.each (i, track) -> track.play()

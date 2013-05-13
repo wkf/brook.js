@@ -8,12 +8,20 @@ body
 
 .button
   margin: 5px
-  width: 200px
-  height: 100px
-  line-height: 100px
+  width: 100px
+  height: 20px
+  line-height: 20px
   text-align: center
   background-color: #aaa
   color: #fff
+  float: left
+  cursor: pointer
+  &:hover
+    background-color: #777
 
-.play, .stop, .record
+.play, .stop, .record, .playall
   @extend .button
+
+.track
+  clear: both
+  padding-bottom: 40px
